@@ -15,18 +15,12 @@
 package network
 
 import (
-	"encoding/json"
 	"net"
 
 	"github.com/coreos/coreos-cloudinit/datasource/metadata/packet"
 )
 
-func ProcessPacketNetconf(config []byte) ([]InterfaceGenerator, error) {
-	var netdata packet.NetworkData
-	if err := json.Unmarshal(config, &netdata); err != nil {
-		return nil, err
-	}
-
+func ProcessPacketNetconf(netdata packet.NetworkData) ([]InterfaceGenerator, error) {
 	var nameservers []net.IP
 	if netdata.DNS != nil {
 		nameservers = netdata.DNS
@@ -89,42 +83,43 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 				routes:      routes,
 			},
 		},
-		options: map[string]string{
-			"Mode":             "802.3ad",
-			"LACPTransmitRate": "fast",
-			"MIIMonitorSec":    ".2",
-			"UpDelaySec":       ".2",
-			"DownDelaySec":     ".2",
-		},
 	}
-
-	for _, iface := range netdata.Interfaces {
-		if iface.Name != "chassis0" && iface.Name != "ipmi0" {
-			bond.slaves = append(bond.slaves, iface.Name)
-			if iface.Name == "enp1s0f0" {
-				bond.hwaddr, _ = net.ParseMAC(iface.Mac)
-			}
+		if netdata.mode == 4 {
+			options: map[string]string{
+				"Mode":             "802.3ad",
+				"LACPTransmitRate": "fast",
+				"MIIMonitorSec":    ".2",
+				"UpDelaySec":       ".2",
+				"DownDelaySec":     ".2",
+			},
+			bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+		} else {
+			if netdata.mode == 5 {
+			options: map[string]string{
+				"Mode":             "5",
+				"MIIMonitorSec":    ".2",
+				"UpDelaySec":       ".2",
+				"DownDelaySec":     ".2",
+			},
+			bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
 		}
 	}
 
-	for _, iface := range netdata.Interfaces {
-		if iface.Name != "chassis0" && iface.Name != "ipmi0" {
-			p := physicalInterface{
-				logicalInterface: logicalInterface{
-					name: iface.Name,
-					config: configMethodStatic{
-						nameservers: nameservers,
-					},
-					children: []networkInterface{&bond},
+
+
+	for index, iface := range netdata.Interfaces {
+		bond.slaves = append(bond.slaves, iface.Name)
+
+		interfaces = append(interfaces, &physicalInterface{
+			logicalInterface: logicalInterface{
+				name: iface.Name,
+				config: configMethodStatic{
+					nameservers: nameservers,
 				},
-			}
-
-			if iface.Name == "enp1s0f0" {
-				p.configDepth = 20
-			}
-
-			interfaces = append(interfaces, &p)
-		}
+				children:    []networkInterface{&bond},
+				configDepth: index,
+			},
+		})
 	}
 
 	interfaces = append(interfaces, &bond)
