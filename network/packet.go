@@ -83,16 +83,34 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 				routes:      routes,
 			},
 		},
-		options: map[string]string{
+	}
+	if netdata.BondingMode == 4 {
+		bond.options = map[string]string{
 			"Mode":             "802.3ad",
 			"LACPTransmitRate": "fast",
 			"MIIMonitorSec":    ".2",
 			"UpDelaySec":       ".2",
 			"DownDelaySec":     ".2",
-		},
-	}
+		}
+		bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
 
-	bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+	} else if netdata.BondingMode == 5 {
+		bond.options = map[string]string{
+			"Mode":          "5",
+			"MIIMonitorSec": ".2",
+			"UpDelaySec":    ".2",
+			"DownDelaySec":  ".2",
+		}
+		bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+	} else {
+		bond.options = map[string]string{
+			"Mode":          "5",
+			"MIIMonitorSec": ".2",
+			"UpDelaySec":    ".2",
+			"DownDelaySec":  ".2",
+		}
+		bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+	}
 
 	for index, iface := range netdata.Interfaces {
 		bond.slaves = append(bond.slaves, iface.Name)
