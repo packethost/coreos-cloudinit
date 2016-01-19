@@ -45,10 +45,10 @@ type Nic struct {
 }
 
 type NetworkData struct {
-	Interfaces []Nic      `json:"interfaces"`
-	Netblocks  []Netblock `json:"addresses"`
-	DNS        []net.IP   `json:"dns"`
-	BondingMode int       `json:"mode"`
+	Interfaces  []Nic      `json:"interfaces"`
+	Netblocks   []Netblock `json:"addresses"`
+	DNS         []net.IP   `json:"dns"`
+	BondingMode int        `json:"mode"`
 }
 
 // Metadata that will be pulled from the https://metadata.packet.net/metadata only. We have the opportunity to add more later.

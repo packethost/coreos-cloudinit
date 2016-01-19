@@ -74,7 +74,7 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 		}
 	}
 
-	bond := bondInterface{
+	bond := &bondInterface{
 		logicalInterface: logicalInterface{
 			name: "bond0",
 			config: configMethodStatic{
@@ -83,33 +83,21 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 				routes:      routes,
 			},
 		},
+		options: map[string]string{
+			"MIIMonitorSec": ".2",
+			"UpDelaySec":    ".2",
+			"DownDelaySec":  ".2",
+		},
 	}
-	if netdata.BondingMode == 4 {
-		bond.options = map[string]string{
-			"Mode":             "802.3ad",
-			"LACPTransmitRate": "fast",
-			"MIIMonitorSec":    ".2",
-			"UpDelaySec":       ".2",
-			"DownDelaySec":     ".2",
-		}
-		bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+	bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
 
+	if netdata.BondingMode == 4 {
+		bond.options["Mode"] = "802.3ad"
+		bond.options["LACPTransmitRate"] = "fast"
 	} else if netdata.BondingMode == 5 {
-		bond.options = map[string]string{
-			"Mode":          "5",
-			"MIIMonitorSec": ".2",
-			"UpDelaySec":    ".2",
-			"DownDelaySec":  ".2",
-		}
-		bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+		bond.options["Mode"] = "5" // TLB
 	} else {
-		bond.options = map[string]string{
-			"Mode":          "5",
-			"MIIMonitorSec": ".2",
-			"UpDelaySec":    ".2",
-			"DownDelaySec":  ".2",
-		}
-		bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
+		bond.options["Mode"] = "5" // Default to TLB?
 	}
 
 	for index, iface := range netdata.Interfaces {
@@ -121,13 +109,13 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 				config: configMethodStatic{
 					nameservers: nameservers,
 				},
-				children:    []networkInterface{&bond},
+				children:    []networkInterface{bond},
 				configDepth: index,
 			},
 		})
 	}
 
-	interfaces = append(interfaces, &bond)
+	interfaces = append(interfaces, bond)
 
 	return interfaces, nil
 }
