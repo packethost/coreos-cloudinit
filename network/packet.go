@@ -16,6 +16,7 @@ package network
 
 import (
 	"net"
+	"strconv"
 
 	"github.com/coreos/coreos-cloudinit/datasource/metadata/packet"
 )
@@ -91,13 +92,14 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 	}
 	bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
 
-	if netdata.Bonding.Mode == 4 {
-		bond.options["Mode"] = "802.3ad"
+	switch netdata.Bonding.Mode {
+	case 4:
+		bond.options["Mode"] = "802.3ad" // LACP
 		bond.options["LACPTransmitRate"] = "fast"
-	} else if netdata.Bonding.Mode == 5 {
-		bond.options["Mode"] = "5" // TLB
-	} else {
-		bond.options["Mode"] = "5" // Default to TLB?
+	case 5:
+		bond.options["Mode"] = "balance-tlb"
+	default:
+		bond.options["Mode"] = strconv.Itoa(netdata.Bonding.Mode)
 	}
 
 	for index, iface := range netdata.Interfaces {
