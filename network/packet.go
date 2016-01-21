@@ -91,10 +91,10 @@ func parseNetwork(netdata packet.NetworkData, nameservers []net.IP) ([]Interface
 	}
 	bond.hwaddr, _ = net.ParseMAC(netdata.Interfaces[0].Mac)
 
-	if netdata.BondingMode == 4 {
+	if netdata.Bonding.Mode == 4 {
 		bond.options["Mode"] = "802.3ad"
 		bond.options["LACPTransmitRate"] = "fast"
-	} else if netdata.BondingMode == 5 {
+	} else if netdata.Bonding.Mode == 5 {
 		bond.options["Mode"] = "5" // TLB
 	} else {
 		bond.options["Mode"] = "5" // Default to TLB?
